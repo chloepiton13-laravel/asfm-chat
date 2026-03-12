@@ -9,31 +9,35 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-     public function up(): void
-     {
-         Schema::create('games', function (Blueprint $table) {
-             $table->id();
+    public function up(): void
+    {
+        // FORCE : Désactive la vérification des clés étrangères pour éviter l'erreur 1824
+        Schema::disableForeignKeyConstraints();
 
-             // AJOUT : Liaison avec la saison (doit être placée avant les équipes)
-             $table->foreignId('season_id')->constrained('seasons')->onDelete('cascade');
+        Schema::create('games', function (Blueprint $table) {
+            $table->id();
 
-             // Clés étrangères liées à la table 'equipes'
-             $table->foreignId('equipe_a_id')->constrained('equipes')->onDelete('cascade');
-             $table->foreignId('equipe_b_id')->constrained('equipes')->onDelete('cascade');
+            // Liaison avec la saison
+            $table->foreignId('season_id')->constrained('seasons')->onDelete('cascade');
 
-             // Scores
-             $table->integer('score_a')->default(0);
-             $table->integer('score_b')->default(0);
+            // Clés étrangères liées à la table 'equipes'
+            $table->foreignId('equipe_a_id')->constrained('equipes')->onDelete('cascade');
+            $table->foreignId('equipe_b_id')->constrained('equipes')->onDelete('cascade');
 
-             // Métadonnées
-             $table->timestamp('joue_le')->useCurrent();
-             $table->string('terrain')->nullable();
-             $table->string('statut')->default('termine');
-             $table->timestamps();
-         });
-     }
+            // Scores
+            $table->integer('score_a')->default(0);
+            $table->integer('score_b')->default(0);
 
+            // Métadonnées
+            $table->timestamp('joue_le')->useCurrent();
+            $table->string('terrain')->nullable();
+            $table->string('statut')->default('termine');
+            $table->timestamps();
+        });
 
+        // RÉACTIVE : Remet la vérification une fois la table créée
+        Schema::enableForeignKeyConstraints();
+    }
 
     /**
      * Reverse the migrations.
