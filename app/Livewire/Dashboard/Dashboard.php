@@ -33,18 +33,12 @@ class Dashboard extends Component
                                   ?? Season::latest()->value('id');
     }
 
-    // Propriété calculée pour la saison en cours de visualisation
+    // Propriété pour la saison actuellement visionnée (via le filtre)
     #[Computed]
     public function currentSeason()
     {
         return Season::find($this->selectedSeasonId);
     }
-        /*
-
-    |--------------------------------------------------------------------------
-    | LOGIQUE ÉQUIPEMENTS (Basée sur le modèle AsfmEquipement)
-    |--------------------------------------------------------------------------
-    */
 
     #[Computed]
     public function equipements()
@@ -198,100 +192,98 @@ class Dashboard extends Component
         $this->dispatch('show-toast', message: 'Score enregistré et classement mis à jour !', type: 'success');
     }
 
+    #[Computed]
+    public function activeSeason()
+    {
+        return Season::where('is_active', true)->first();
+    }
+
     /**
  * Réinitialise le filtre sur la saison active.
  */
-public function resetToActiveSeason()
-{
-    $activeId = Season::where('is_active', true)->value('id');
+ public function resetToActiveSeason()
+ {
+     // On utilise la propriété calculée pour récupérer l'ID
+     $activeId = $this->activeSeason?->id;
 
-    if ($activeId) {
-        $this->selectedSeasonId = $activeId;
+     if ($activeId) {
+         $this->selectedSeasonId = $activeId;
 
-        $this->dispatch('notify',
-            type: 'info',
-            message: 'Affichage de la saison active rétabli.'
-        );
-    }
-}
+         $this->dispatch('notify',
+             title: 'Saison Active', // Optionnel selon votre système de notification
+             type: 'info',
+             message: 'Affichage de la saison active rétabli.'
+         );
+     }
+ }
 
 
-    public function render()
-    {
-        // On utilise l'ID de la saison choisie (via #[Computed] currentSeason ou selectedSeasonId)
-        $sid = $this->selectedSeasonId;
 
-        // --- STATS SPORTIVES ---
-        $matchsTerminesQuery = Game::where('statut', 'termine')->where('season_id', $sid);
-        $totalMatchs = $matchsTerminesQuery->count();
-        $totalButs   = $matchsTerminesQuery->get()->sum(fn($g) => $g->score_a + $g->score_b);
+ public function render()
+ {
+     $sid = $this->selectedSeasonId;
 
-        // --- STATS FINANCIÈRES ---
-        $totalAnnuel = Contribution::totalAnnuel();
-        $objectifAnnuel = 10000000; // 10M FC
-        $pourcentageObjectif = $objectifAnnuel > 0 ? ($totalAnnuel / $objectifAnnuel) * 100 : 0;
+     // --- STATS SPORTIVES ---
+     $matchsTerminesQuery = Game::where('statut', 'termine')->where('season_id', $sid);
+     $totalMatchs = $matchsTerminesQuery->count();
+     $totalButs   = $matchsTerminesQuery->get()->sum(fn($g) => $g->score_a + $g->score_b);
 
-        return view('livewire.dashboard.dashboard', [
-            // Configuration & Filtres
-            'seasons'       => Season::orderByDesc('start_date')->get(),
-            'currentSeason' => $this->currentSeason, // Utilise ta propriété #[Computed]
+     // --- STATS FINANCIÈRES ---
+     $totalAnnuel = Contribution::totalAnnuel();
+     $objectifAnnuel = 10000000;
+     $pourcentageObjectif = $objectifAnnuel > 0 ? ($totalAnnuel / $objectifAnnuel) * 100 : 0;
 
-            // Widget Performance Budgétaire
-            'totalAnnuel'         => $totalAnnuel,
-            'totalMensuel'        => Contribution::totalMensuel(),
-            'pourcentageObjectif' => $pourcentageObjectif,
-            'tauxRecouvrement'    => $this->getTauxRecouvrement(),
-            'retardataires'       => Equipe::where('est_actif', true)
-                ->whereDoesntHave('contributions', fn($q) =>
-                    $q->whereMonth('mois_concerne', now()->month)
-                      ->whereYear('mois_concerne', now()->year)
-                      ->paye()
-                )->get(),
+     return view('livewire.dashboard.dashboard', [
+         'seasons'       => Season::orderByDesc('start_date')->get(),
+         'totalAnnuel'   => $totalAnnuel,
+         'totalMensuel'  => Contribution::totalMensuel(),
+         'pourcentageObjectif' => $pourcentageObjectif,
+         'tauxRecouvrement'    => $this->getTauxRecouvrement(),
+         'retardataires'       => Equipe::where('est_actif', true)
+             ->whereDoesntHave('contributions', fn($q) =>
+                 $q->whereMonth('mois_concerne', now()->month)
+                   ->whereYear('mois_concerne', now()->year)
+                   ->paye()
+             )->get(),
 
-            // Compteurs Globaux (Nettoyés)
-            'stats_counts' => [
-                'users'         => \App\Models\User::count(),
-                'equipes'       => Equipe::where('est_actif', true)->count(),
-                'players'       => Player::count(),
-                'members'       => AsfmMember::where('est_actif', true)->count(),
-                'equipements'   => AsfmEquipement::count(),
-                'alertes_stock' => AsfmEquipement::all()->filter->is_stock_critique->count(),
-            ],
+         'stats_counts' => [
+             'users'         => \App\Models\User::count(),
+             'equipes'       => Equipe::where('est_actif', true)->count(),
+             'players'       => Player::count(),
+             'members'       => AsfmMember::where('est_actif', true)->count(),
+             'equipements'   => AsfmEquipement::count(),
+             'alertes_stock' => AsfmEquipement::all()->filter->is_stock_critique->count(),
+         ],
 
-            // Classement & Matchs (Filtrés par $sid)
-            'standings' => Standing::with('equipe')
-                ->has('equipe')
-                ->where('season_id', $sid)
-                ->orderByDesc('points')
-                ->orderByDesc('goal_difference')
-                ->get(),
+         'standings' => Standing::with('equipe')
+             ->where('season_id', $sid)
+             ->orderByDesc('points')
+             ->orderByDesc('goal_difference')
+             ->get(),
 
-            'derniersMatchs' => Game::with(['equipeA', 'equipeB'])
-                ->where('season_id', $sid)
-                ->orderBy('joue_le', 'desc')
-                ->take(5)->get(),
+         'derniersMatchs' => Game::with(['equipeA', 'equipeB'])
+             ->where('season_id', $sid)
+             ->orderBy('joue_le', 'desc')
+             ->take(5)->get(),
 
-            'prochainMatch' => Game::with(['equipeA', 'equipeB'])
-                ->where('statut', 'programme')
-                ->where('joue_le', '>', now())
-                ->where('season_id', $sid)
-                ->orderBy('joue_le', 'asc')->first(),
+         'prochainMatch' => Game::with(['equipeA', 'equipeB'])
+             ->where('statut', 'programme')
+             ->where('joue_le', '>', now())
+             ->where('season_id', $sid)
+             ->orderBy('joue_le', 'asc')->first(),
 
-            // Performances Individuelles
-            'recentGoals' => Goal::with(['player', 'equipe', 'game'])
-                ->whereHas('game', fn($q) => $q->where('season_id', $sid))
-                ->latest()->take(6)->get(),
+         'recentGoals' => Goal::with(['player', 'equipe', 'game'])
+             ->whereHas('game', fn($q) => $q->where('season_id', $sid))
+             ->latest()->take(6)->get(),
 
-            'topScorers' => Player::with('equipe')
-                ->withCount(['goals' => fn($q) =>
-                    $q->whereHas('game', fn($g) => $g->where('season_id', $sid))
-                ])->orderByDesc('goals_count')->take(5)->get(),
+         'topScorers' => Player::with('equipe')
+             ->withCount(['goals' => fn($q) =>
+                 $q->whereHas('game', fn($g) => $g->where('season_id', $sid))
+             ])->orderByDesc('goals_count')->take(5)->get(),
 
-            // Autres données
-            'membres'        => AsfmMember::with('equipe')->where('est_actif', true)->latest()->take(5)->get(),
-            'totalButs'      => $totalButs,
-            'ratioButs'      => $totalMatchs > 0 ? round($totalButs / $totalMatchs, 1) : 0,
-            'comparisonData' => $this->getComparisonData(),
-        ]);
-    }
+         'membres'   => AsfmMember::with('equipe')->where('est_actif', true)->latest()->take(5)->get(),
+         'totalButs' => $totalButs,
+         'ratioButs' => $totalMatchs > 0 ? round($totalButs / $totalMatchs, 1) : 0,
+     ]);
+ }
 }

@@ -1,62 +1,69 @@
 <div class="space-y-8 bg-gray-50/50 min-h-screen pb-12">
-    <!-- HEADER : Titre & Action Rapide -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-gray-100 pb-6">
-        <div>
-            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">ASFM Dashboard</h1>
-            <div class="flex items-center gap-2 mt-1">
-                <p class="text-slate-500 font-medium">Saison Active :
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-100 text-blue-800 uppercase tracking-wider italic">
-                        {{ \App\Models\Season::where('is_active', true)->value('name') ?? 'N/A' }}
-                    </span>
-                </p>
+  <!-- HEADER : Titre & Action Rapide -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-gray-100 pb-6">
+      <div>
+          <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">ASFM Dashboard</h1>
 
-                {{-- Badge indicateur si on consulte une archive --}}
-                @if($selectedSeasonId !== \App\Models\Season::where('is_active', true)->id)
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-700 uppercase animate-pulse">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                        Mode Archive
-                    </span>
-                @endif
-            </div>
-        </div>
+          <div class="flex flex-wrap items-center gap-3 mt-1">
+              {{-- Saison Active --}}
+              <p class="text-slate-500 font-medium">
+                  Saison Active :
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-100 text-blue-800 uppercase tracking-wider italic">
+                      {{ $this->activeSeason->name ?? 'N/A' }}
+                  </span>
+              </p>
 
-        <div class="flex flex-wrap items-center gap-3">
-            {{-- Sélecteur de Saison Dynamique --}}
-            <div class="relative group">
-                <select wire:model.live="selectedSeasonId"
-                    class="appearance-none pl-4 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all cursor-pointer shadow-sm">
-                    @foreach($seasons as $season)
-                        <option value="{{ $season->id }}">
-                            Saison {{ $season->name }} {{ $season->is_active ? '●' : '' }}
-                        </option>
-                    @endforeach
-                </select>
-                <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
-                </div>
-            </div>
+              {{-- Indicateur Mode Archive --}}
+              @if($this->activeSeason && $selectedSeasonId != $this->activeSeason->id)
+                  <div class="flex items-center gap-2">
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-700 uppercase animate-pulse">
+                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                          </svg>
+                          Mode Archive : {{ $this->currentSeason->name ?? 'Inconnue' }}
+                      </span>
+                  </div>
+              @endif
+          </div>
+      </div>
 
-            {{-- Bouton Reset (Apparaît seulement si nécessaire) --}}
-            @if($selectedSeasonId !== \App\Models\Season::where('is_active', true)->id)
-                <button wire:click="resetToActiveSeason"
-                    class="inline-flex items-center px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-black uppercase rounded-xl transition-all border border-amber-200 group/reset">
-                    <svg class="w-4 h-4 mr-2 group-hover/reset:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                    </svg>
-                    Retour Direct
-                </button>
-            @endif
+      <div class="flex flex-wrap items-center gap-3">
+          {{-- Sélecteur de Saison Dynamique --}}
+          <div class="relative group">
+              <select wire:model.live="selectedSeasonId"
+                  class="appearance-none pl-4 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all cursor-pointer shadow-sm">
+                  @foreach($seasons as $season)
+                      <option value="{{ $season->id }}">
+                          Saison {{ $season->name }} {{ $season->is_active ? '●' : '' }}
+                      </option>
+                  @endforeach
+              </select>
+              <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+              </div>
+          </div>
 
-            {{-- Bouton Nouveau Score --}}
-            <button wire:click="$set('showScoreModal', true)"
-                class="inline-flex items-center px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-200 group">
-                <svg class="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
-                </svg>
-                Nouveau Score
-            </button>
-        </div>
-    </div>
+          {{-- CORRECTION ICI : Utilisation de la propriété calculée pour éviter l'erreur 500 --}}
+          @if($this->activeSeason && $selectedSeasonId != $this->activeSeason->id)
+              <button wire:click="resetToActiveSeason"
+                  class="inline-flex items-center px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-black uppercase rounded-xl transition-all border border-amber-200 group/reset">
+                  <svg class="w-4 h-4 mr-2 group-hover/reset:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                  </svg>
+                  Retour Direct
+              </button>
+          @endif
+
+          {{-- Bouton Nouveau Score --}}
+          <button wire:click="$set('showScoreModal', true)"
+              class="inline-flex items-center px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-200 group">
+              <svg class="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
+              </svg>
+              Nouveau Score
+          </button>
+      </div>
+  </div>
 
 
     <div >
@@ -111,21 +118,6 @@
                 @foreach($this->equipements as $item)
                     @include('livewire.dashboard.partials.equipment-card', ['item' => $item])
                 @endforeach
-            </div>
-        </div>
-
-        <!--  -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Staff -->
-            <div class="bg-white rounded-lg p-8 border border-slate-100">
-                <h4 class="text-xs font-black text-slate-800 uppercase tracking-widest mb-6">Membres du Staff</h4>
-                @include('livewire.dashboard.partials.staff-list')
-            </div>
-
-            <!-- Top Buteurs -->
-            <div class="bg-slate-900 rounded-lg p-8 text-white">
-                <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">Top Performers</h4>
-                @include('livewire.dashboard.partials.top-scorers')
             </div>
         </div>
 
