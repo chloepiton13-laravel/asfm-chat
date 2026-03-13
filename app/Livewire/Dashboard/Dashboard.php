@@ -120,39 +120,44 @@ class Dashboard extends Component
     /**
      * Génère les données comparatives du budget entre la saison choisie et la précédente
      */
-    public function getBudgetComparisonData()
-    {
-        $currentSeason = Season::find($this->selectedSeasonId);
-        $previousSeason = Season::where('start_date', '<', $currentSeason->start_date)
-                                ->orderByDesc('start_date')
-                                ->first();
+     public function getBudgetComparisonData()
+     {
+         // 1. Récupérer la saison ou la saison active par défaut si l'ID est nul
+         $currentSeason = Season::find($this->selectedSeasonId)
+                          ?? Season::where('is_active', true)->first();
 
-        // Utilisation de whereBetween sur les dates de la saison au lieu de season_id
-        $dataCurrent = Contribution::whereBetween('mois_concerne', [$currentSeason->start_date, $currentSeason->end_date])
-            ->paye()
-            ->sum('montant');
+         // 2. Vérifier si on a bien trouvé une saison avant de continuer
+         if (!$currentSeason) {
+             return [
+                 'current' => 0,
+                 'previous' => 0,
+                 'growth' => 0
+             ];
+         }
 
-        $dataPrevious = 0;
-        if ($previousSeason) {
-            $dataPrevious = Contribution::whereBetween('mois_concerne', [$previousSeason->start_date, $previousSeason->end_date])
-                ->paye()
-                ->sum('montant');
-        }
+         $previousSeason = Season::where('start_date', '<', $currentSeason->start_date)
+                                 ->orderByDesc('start_date')
+                                 ->first();
 
-        return [
-            'labels' => [$previousSeason?->name ?? 'N-1', $currentSeason->name],
-            'datasets' => [
-                [
-                    'label' => 'Revenus Encaissés (FC)',
-                    'data' => [$dataPrevious, $dataCurrent],
-                    'fill' => true,
-                    'borderColor' => '#4f46e5',
-                    'backgroundColor' => 'rgba(79, 70, 229, 0.1)',
-                    'tension' => 0.4
-                ]
-            ]
-        ];
-    }
+         $dataCurrent = Contribution::whereBetween('mois_concerne', [$currentSeason->start_date, $currentSeason->end_date])
+             ->where('statut', 'paye') // ou votre scope paye()
+             ->sum('montant');
+
+         $dataPrevious = 0;
+         if ($previousSeason) {
+             $dataPrevious = Contribution::whereBetween('mois_concerne', [$previousSeason->start_date, $previousSeason->end_date])
+                 ->where('statut', 'paye')
+                 ->sum('montant');
+         }
+
+         $growth = $dataPrevious > 0 ? (($dataCurrent - $dataPrevious) / $dataPrevious) * 100 : 0;
+
+         return [
+             'current' => $dataCurrent,
+             'previous' => $dataPrevious,
+             'growth' => $growth
+         ];
+     }
 
 
     /*

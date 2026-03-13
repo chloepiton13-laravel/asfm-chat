@@ -11,9 +11,12 @@
             <div class="flex items-center gap-4">
                 <!-- AVATAR AVEC RANG -->
                 <div class="relative">
-                    <img src="{{ $player->photo ? asset('storage/'.$player->photo) : 'https://ui-avatars.com($player->name).'&background=f8fafc&color=6366f1' }}"
-                         class="w-11 h-11 rounded-full object-cover border-2 border-slate-50 group-hover:border-indigo-100 transition-colors shadow-sm">
-
+                  <img
+                      src="{{ $player->photo
+                          ? asset('storage/'.$player->photo)
+                          : 'https://ui-avatars.com/api/?name='.urlencode($player->name).'&background=f8fafc&color=6366f1' }}"
+                      class="w-11 h-11 rounded-full object-cover border-2 border-slate-50 group-hover:border-indigo-100 transition-colors shadow-sm"
+                  >
                     <span @class([
                         'absolute -top-1 -left-1 w-5 h-5 text-[8px] font-black flex items-center justify-center rounded-full italic border-2 border-white shadow-sm',
                         'bg-amber-400 text-white' => $index === 0, // Soulier d'or

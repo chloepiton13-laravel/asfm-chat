@@ -347,78 +347,8 @@
 
     <!-- SECTION 07 : ANALYSE COMPARATIVE DU BUDGET -->
     <div class="bg-white rounded-lg shadow-sm border border-slate-100 p-8">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-            <div>
-                <h4 class="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] mb-2 italic flex items-center">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-                    Analyse Croisée
-                </h4>
-                <h3 class="text-xl font-black text-slate-900 tracking-tighter uppercase">Évolution Budgétaire</h3>
-            </div>
-
-            <div class="flex items-center gap-6">
-                <div class="flex flex-col items-end">
-                    <span class="text-[9px] font-black text-slate-400 uppercase">Croissance</span>
-                    @php
-                        $prevSeason = \App\Models\Season::where('start_date', '<', $this->currentSeason->start_date)
-                            ->orderByDesc('start_date')
-                            ->first();
-
-                        $prev = 0;
-                        if ($prevSeason) {
-                            $prev = \App\Models\Contribution::whereBetween('mois_concerne', [$prevSeason->start_date, $prevSeason->end_date])
-                                ->paye()
-                                ->sum('montant');
-                        }
-
-                        $growth = $prev > 0 ? (($totalAnnuel - $prev) / $prev) * 100 : 0;
-                    @endphp
-                    <span class="text-sm font-black {{ $growth >= 0 ? 'text-emerald-600' : 'text-red-500' }}">
-                        {{ $growth >= 0 ? '+' : '' }}{{ round($growth, 1) }}%
-                    </span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Zone Graphique -->
-        <div class="h-64 w-full">
-            <canvas id="budgetEvolutionChart"></canvas>
-        </div>
-
-        <div class="mt-6 p-4 bg-slate-50 rounded-2xl flex items-center justify-between">
-            <p class="text-[10px] font-bold text-slate-500 italic uppercase">Comparaison basée sur les cotisations validées (Statut: Payé)</p>
-            <button class="text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline">Détails par équipe</button>
-        </div>
+      <livewire:dashboard.analys-comparative-budget />
     </div>
-
-    @script
-    <script>
-        let budgetChart;
-        const initBudgetChart = () => {
-            const ctx = document.getElementById('budgetEvolutionChart');
-            if (!ctx) return;
-            if (budgetChart) budgetChart.destroy();
-
-            budgetChart = new Chart(ctx, {
-                type: 'line',
-                data: @json($this->getBudgetComparisonData()),
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { display: false },
-                        x: { grid: { display: false }, ticks: { font: { weight: 'bold', size: 10 } } }
-                    }
-                }
-            });
-        };
-
-        initBudgetChart();
-        Livewire.on('refreshChart', () => { setTimeout(initBudgetChart, 100); });
-    </script>
-    @endscript
-
 
     <!-- MODAL D'ENREGISTREMENT DE SCORE -->
     @if($showScoreModal)
@@ -555,5 +485,33 @@
     renderChart();
     // Re-rendre le graphique après les updates Livewire si nécessaire
     Livewire.on('refreshChart', () => { setTimeout(() => renderChart(), 100); });
+</script>
+@endscript
+
+@script
+<script>
+    let budgetChart;
+    const initBudgetChart = () => {
+        const ctx = document.getElementById('budgetEvolutionChart');
+        if (!ctx) return;
+        if (budgetChart) budgetChart.destroy();
+
+        budgetChart = new Chart(ctx, {
+            type: 'line',
+            data: @json($this->getBudgetComparisonData()),
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { display: false },
+                    x: { grid: { display: false }, ticks: { font: { weight: 'bold', size: 10 } } }
+                }
+            }
+        });
+    };
+
+    initBudgetChart();
+    Livewire.on('refreshChart', () => { setTimeout(initBudgetChart, 100); });
 </script>
 @endscript
