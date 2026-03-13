@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 
-class Goal extends Model
-{
+  class Goal extends Model
+  {
     /** @use HasFactory<\Database\Factories\GoalFactory> */
     use HasFactory;
 
@@ -21,6 +21,16 @@ class Goal extends Model
         'periode',    // 1ère ou 2ème mi-temps
         'type',       // 'normal', 'penalty', 'csc'
     ];
+
+    /**
+     * ACCESSEUR : $player->team_name
+     */
+    protected function teamName(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->equipe->nom ?? 'Agent Libre'
+        );
+    }
 
     /**
      * Casts pour assurer le typage des données chronologiques

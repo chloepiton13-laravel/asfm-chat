@@ -31,6 +31,7 @@ return new class extends Migration
             // Métadonnées
             $table->timestamp('joue_le')->useCurrent();
             $table->string('terrain')->nullable();
+            $table->date('date_match')->nullable(); // ou dateTime selon le besoin
             $table->string('statut')->default('termine');
             $table->timestamps();
         });
