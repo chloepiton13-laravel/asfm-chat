@@ -1,54 +1,63 @@
-<!-- FICHIER : resources/views/livewire/dashboard/partials/stat-cards.blade.php -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+<!-- STAT CARDS ACE BERG (INVERSE EDITION) -->
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6 mt-8">
+    @php $index = 1; @endphp
     @foreach([
-        'users' => [
-            'label' => 'Admins',
-            'color' => 'blue',
-            'icon' => 'M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z M14 17.5V19h-11v-1.5a3.5 3.5 0 0 1 7 0z' // person-fill
-        ],
-        'members' => [
-            'label' => 'Staff',
-            'color' => 'indigo',
-            'icon' => 'M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z' // people-fill
-        ],
-        'players' => [
-            'label' => 'Joueurs',
-            'color' => 'orange',
-            'icon' => 'M2 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5zm7-5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm-4.146 4.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708z' // controller
-        ],
-        'equipes' => [
-            'label' => 'Clubs',
-            'color' => 'green',
-            'icon' => 'M3 2.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 .5.5v11a.5.5 0 0 1-.5.5H10v-2a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v2H3.5a.5.5 0 0 1-.5-.5v-11z' // building
-        ],
-        'equipements' => [
-            'label' => 'Matériel',
-            'color' => 'purple',
-            'icon' => 'M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5l2.404.961L10.404 2l-2.218-.887zm3.564 1.426L5.596 5 8 5.961 14.154 3.5l-2.404-.961z' // box-seam
-        ],
-        'contributions' => [
-            'label' => 'Collecte Annuelle',
-            'color' => 'amber',
-            'icon' => 'M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5l2.404.961L10.404 2l-2.218-.887zm3.564 1.426L5.596 5 8 5.961 14.154 3.5l-2.404-.961z' // box-seam
-        ]
+        'users' => ['label' => 'Admins', 'color' => 'blue'],
+        'members' => ['label' => 'Staff', 'color' => 'indigo'],
+        'players' => ['label' => 'Joueurs', 'color' => 'orange'],
+        'equipes' => ['label' => 'Clubs', 'color' => 'emerald'],
+        'equipements' => ['label' => 'Matériel', 'color' => 'purple'],
+        'contributions' => ['label' => 'Collecte', 'color' => 'amber']
     ] as $key => $info)
-        <div class="bg-white p-6 rounded-lg border border-slate-100 shadow-sm flex flex-col items-center text-center group hover:border-{{ $info['color'] }}-200 hover:shadow-xl hover:shadow-{{ $info['color'] }}-50/50 transition-all duration-300">
+        <div class="relative group h-full"
+             x-data="{ finished: false, current: 0, target: {{ $stats_counts[$key] ?? 0 }} }"
+             x-init="setTimeout(() => {
+                let start = Date.now();
+                let duration = 1200;
+                let timer = setInterval(() => {
+                    let timePassed = Date.now() - start;
+                    if (timePassed >= duration) {
+                        current = target;
+                        finished = true;
+                        clearInterval(timer);
+                        return;
+                    }
+                    current = Math.round(target * (timePassed / duration));
+                }, 16);
+             }, 300)">
 
-            <!-- Icon Wrapper avec couleur dynamique -->
-            <div class="p-4 bg-slate-50 rounded-2xl text-slate-400 group-hover:bg-{{ $info['color'] }}-50 group-hover:text-{{ $info['color'] }}-600 mb-4 transition-colors duration-300">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="{{ $info['icon'] }}"></path>
-                </svg>
-            </div>
+            <!-- CARTE DYNAMIQUE : Active par défaut, s'éteint au survol -->
+            <div class="relative bg-white rounded-[2.5rem] p-6 flex flex-col items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] border border-slate-100
+                        shadow-[0_25px_50px_-12px_rgba(0,0,0,0.08)] scale-[1.02]
+                        hover:shadow-sm hover:scale-100 hover:border-slate-200 overflow-hidden">
 
-            <!-- Data -->
-            <div class="flex flex-col">
-                <span class="text-3xl font-black text-slate-900 tabular-nums tracking-tight">
-                    {{ $stats_counts[$key] ?? 0 }}
-                </span>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2 group-hover:text-{{ $info['color'] }}-500 transition-colors">
-                    {{ $info['label'] }}
-                </span>
+                <!-- INDEX : COLORÉ -> GRIS -->
+                <div class="absolute top-0 left-0 w-10 h-10 bg-{{ $info['color'] }}-500 border-r border-b border-white/10 rounded-br-[1.5rem] flex items-center justify-center transition-all duration-500 group-hover:bg-slate-50 group-hover:border-slate-100">
+                    <span class="text-[9px] font-black text-white group-hover:text-slate-300 tabular-nums italic">
+                        0{{ $index++ }}
+                    </span>
+                </div>
+
+                <!-- DATA : COULEUR -> NOIR -->
+                <div class="text-center relative z-10">
+                    <span class="block text-3xl font-black text-{{ $info['color'] }}-600 tabular-nums tracking-[-0.08em] italic leading-none transition-all duration-500 group-hover:text-slate-900 group-hover:scale-90"
+                          x-text="current.toLocaleString()">
+                        0
+                    </span>
+
+                    <!-- BARRE : LARGE COLORÉE -> PETITE GRISE -->
+                    <div class="w-10 h-[3px] bg-{{ $info['color'] }}-500 mx-auto my-5 rounded-full transition-all duration-500 group-hover:w-4 group-hover:bg-slate-200 shadow-[0_0_15px_rgba(0,0,0,0.05)] group-hover:shadow-none"></div>
+
+                    <span class="block text-[9px] font-black text-slate-800 uppercase tracking-[0.4em] transition-colors duration-500 italic group-hover:text-slate-300">
+                        {{ $info['label'] }}
+                    </span>
+                </div>
+
+                <!-- GLOW DE FOND : PRÉSENT -> ABSENT -->
+                <div class="absolute -bottom-10 -right-10 w-24 h-24 bg-{{ $info['color'] }}-500/10 rounded-full blur-2xl transition-opacity duration-700 group-hover:opacity-0 pointer-events-none"></div>
+
+                <!-- OVERLAY GLASS AU SURVOL -->
+                <div class="absolute inset-0 bg-slate-50/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
             </div>
         </div>
     @endforeach

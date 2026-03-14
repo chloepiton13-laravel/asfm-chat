@@ -1,4 +1,32 @@
 <div class="space-y-8 bg-gray-50/50 min-h-screen pb-12">
+  {{-- resources/views/dashboard.blade.php --}}
+
+@if(! in_array(auth()->user()->role, ['admin', 'manager']) && ! auth()->user()->two_factor_confirmed_at)
+    <div class="relative overflow-hidden bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-6 mb-8 group transition-all hover:bg-emerald-500/10">
+        <!-- Effet de scan arrière-plan -->
+        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-500/5 to-transparent -translate-x-full group-hover:animate-[shimmer_3s_infinite]"></div>
+
+        <div class="relative z-10 flex items-center justify-between flex-wrap gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
+                    <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                </div>
+                <div>
+                    <h4 class="text-emerald-500 text-[10px] font-black uppercase tracking-[0.2em] italic">Recommandation de sécurité</h4>
+                    <p class="text-slate-400 text-[11px] font-bold uppercase tracking-widest mt-1">Protégez vos actifs avec le protocole 2FA.</p>
+                </div>
+            </div>
+
+            <a href="{{ route('profile.security') }}"
+               class="px-6 py-2 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-500 hover:text-[#050714] border border-emerald-500/30 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all duration-300 italic">
+                Configurer maintenant
+            </a>
+        </div>
+    </div>
+@endif
+
   <!-- HEADER : Titre & Action Rapide -->
   <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-gray-100 pb-6">
       <div>
@@ -67,143 +95,30 @@
 
 
     <div >
-    {{-- On appelle le partial que nous avons créé précédemment --}}
-    @include('livewire.dashboard.partials.stat-cards')
+      {{-- On appelle le partial que nous avons créé précédemment --}}
+      @include('livewire.dashboard.partials.stat-cards')
     </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 mt-8">
-    {{-- On collecte annuelle --}}
-    @include('livewire.dashboard.partials.collecte-annuelle')
-
-    <div class="bg-white rounded-lg shadow-sm border border-slate-100 p-8">
-        <h4 class="text-[10px] font-black text-slate-800 uppercase tracking-[0.2em] mb-6 italic flex items-center">
-            <span class="w-2 h-2 bg-emerald-500 rounded-full mr-2"></span> Flux Trésorerie
-        </h4>
-        <div class="space-y-5">
-            @foreach(\App\Models\Contribution::paye()->latest()->take(4)->get() as $paiement)
-                <div class="flex items-center justify-between text-xs group">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center font-black group-hover:bg-emerald-600 group-hover:text-white transition-colors">FC</div>
-                        <div>
-                            <p class="font-bold text-slate-700">{{ $paiement->equipe->nom }}</p>
-                            <p class="text-[9px] text-slate-400 uppercase font-medium">{{ $paiement->reference_paiement ?? 'No Ref' }}</p>
-                        </div>
-                    </div>
-                    <span class="font-black text-emerald-600">+{{ number_format($paiement->montant, 0, ',', ' ') }}</span>
-                </div>
-            @endforeach
-        </div>
-    </div>
-
-    </div>
-
-
-
-
-        <!-- GRILLE DE COMPTEURS GLOBAUX & FLUX -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-            <!-- Compteurs -->
-            <div class="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-4">
-            </div>
-
-            <!-- Dernières Transactions -->
-        </div>
-
-
-        <!-- INVENTAIRE DU MATÉRIEL (ELOQUENT) -->
-        <div class="space-y-4">
-            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic ml-4">Gestion des Stocks</h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                @foreach($this->equipements as $item)
-                    @include('livewire.dashboard.partials.equipment-card', ['item' => $item])
-                @endforeach
-            </div>
-        </div>
-
-
-
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-
-        {{-- Card supplémentaire pour les Alertes Stock si nécessaire --}}
-        <div class="bg-white p-5 rounded-[2rem] border {{ $stats_counts['alertes_stock'] > 0 ? 'border-red-200 bg-red-50/50' : 'border-slate-100' }} shadow-sm flex flex-col justify-center items-center text-center group transition-all">
-            <div class="p-3 {{ $stats_counts['alertes_stock'] > 0 ? 'bg-red-100 text-red-600' : 'bg-slate-50 text-slate-400' }} rounded-2xl mb-3">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-            </div>
-            <span class="text-2xl font-black {{ $stats_counts['alertes_stock'] > 0 ? 'text-red-700' : 'text-slate-900' }} tabular-nums">{{ $stats_counts['equipements'] }}</span>
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 italic">Matériel</span>
-        </div>
-        </div>
 
     <!-- SECTION 2 : GRAPHIQUES & ALERTES FINANCIÈRES -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Chart -->
-        <div class="lg:col-span-2 bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-            <div class="flex items-center justify-between mb-8">
-                <h4 class="text-lg font-black text-slate-800 italic uppercase tracking-tight">Analyse des Collectes</h4>
-                <div class="flex items-center gap-2 text-xs font-bold uppercase text-slate-400">
-                    <span class="w-3 h-3 bg-slate-300 rounded-full"></span> Mois Précédent
-                    <span class="w-3 h-3 bg-indigo-600 rounded-full ml-2"></span> Actuel
-                </div>
-            </div>
-            <div class="h-72">
-                <canvas id="comparisonChart"></canvas>
-            </div>
+    <!-- GRILLE PRINCIPALE DU DASHBOARD -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-10 items-start">
+
+        <!-- COLONNE GAUCHE (2/3) : LE GRAPHIQUE RÉEL -->
+        <div class="lg:col-span-2">
+            <livewire:dashboard.graphiques-alerts-financieres />
         </div>
 
-        <!-- Retardataires -->
-        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
-            <div class="p-6 bg-red-50/50 border-b border-red-100">
-                <h4 class="text-sm font-black text-red-700 uppercase tracking-wider flex items-center">
-                    <span class="flex h-2 w-2 rounded-full bg-red-600 mr-3 animate-ping"></span>
-                    Relances à effectuer ({{ $retardataires->count() }})
-                </h4>
-            </div>
-            <div class="flex-1 overflow-y-auto p-4 space-y-3 max-h-[350px]">
-                @forelse($retardataires as $equipe)
-                    <div class="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl hover:border-red-200 transition-colors group">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 font-bold group-hover:bg-red-50 group-hover:text-red-600 transition-colors">
-                                {{ substr($equipe->nom, 0, 1) }}
-                            </div>
-                            <span class="text-sm font-bold text-slate-700">{{ $equipe->nom }}</span>
-                        </div>
-                        <button class="p-2 text-slate-300 hover:text-red-600 transition-colors" title="Envoyer notification">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                        </button>
-                    </div>
-                @empty
-                    <div class="h-full flex flex-col items-center justify-center text-center p-8">
-                        <div class="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mb-4 text-2xl">✓</div>
-                        <p class="text-sm font-bold text-slate-500">Tout est en ordre !</p>
-                        <p class="text-[11px] text-slate-400 mt-1 text-balance">Aucune équipe n'est en retard de paiement ce mois-ci.</p>
-                    </div>
-                @endforelse
-            </div>
+        <!-- COLONNE DROITE (1/3) : COLLECTE ANNUELLE & FLUX -->
+        <div class="flex flex-col gap-8">
+            <livewire:dashboard.flux-tresorerie />
+            @include('livewire.dashboard.partials.collecte-annuelle')
         </div>
     </div>
 
     <!-- SECTION 3 : TOP PERFORMANCE & MATCHS -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <!-- Top Buteurs -->
-        <div class="bg-indigo-900 rounded-3xl p-8 shadow-xl shadow-indigo-100 text-white">
-            <h4 class="text-lg font-black italic uppercase tracking-wider mb-8 text-indigo-200">Meilleurs Buteurs</h4>
-            <div class="space-y-6">
-                @foreach($topScorers as $index => $player)
-                    <div class="flex items-center gap-4">
-                        <span class="text-2xl font-black italic opacity-30">{{ str_pad($index + 1, 2, '0', STR_PAD_LEFT) }}</span>
-                        <div class="flex-1">
-                            <p class="font-bold text-sm truncate uppercase tracking-tight">{{ $player->name }}</p>
-                            <p class="text-[10px] text-indigo-300 font-bold opacity-80 uppercase">{{ $player->equipe->nom ?? 'Inconnu' }}</p>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-xl font-black text-indigo-400">{{ $player->goals_count }}</span>
-                            <span class="text-[10px] font-bold uppercase opacity-50">Buts</span>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        </div>
+        <livewire:dashboard.buteurs-top5 />
 
         <!-- Derniers Résultats -->
         <div class="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
@@ -342,7 +257,6 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <livewire:dashboard.classemen-officiel />
         <livewire:dashboard.chronologie-buts />
-        <livewire:dashboard.buteurs-top5 />
     </div>
 
     <!-- SECTION 07 : ANALYSE COMPARATIVE DU BUDGET -->
@@ -398,55 +312,51 @@
     </div>
     @endif
     <!-- MODAL GESTION INVENTAIRE -->
-@if($showStockModal)
-<div class="fixed inset-0 z-[60] flex items-center justify-center p-4">
-    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-md" wire:click="$set('showStockModal', false)"></div>
-    <div class="bg-white rounded-[32px] w-full max-w-sm shadow-2xl relative z-10 overflow-hidden border border-white">
-        <div class="p-8 pb-4 flex justify-between items-center">
-            <h3 class="text-xl font-black text-slate-800 italic uppercase tracking-tighter">Mouvement Stock</h3>
-            <button wire:click="$set('showStockModal', false)" class="text-slate-400 hover:text-slate-600 transition-transform hover:rotate-90">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
+    @if($showStockModal)
+    <div class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-md" wire:click="$set('showStockModal', false)"></div>
+        <div class="bg-white rounded-[32px] w-full max-w-sm shadow-2xl relative z-10 overflow-hidden border border-white">
+            <div class="p-8 pb-4 flex justify-between items-center">
+                <h3 class="text-xl font-black text-slate-800 italic uppercase tracking-tighter">Mouvement Stock</h3>
+                <button wire:click="$set('showStockModal', false)" class="text-slate-400 hover:text-slate-600 transition-transform hover:rotate-90">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <form wire:submit.prevent="adjustStock" class="p-8 pt-4 space-y-6">
+                <!-- Sélection de l'article -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Article</label>
+                    <select wire:model="selectedItemId" class="w-full bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 font-bold p-4 text-sm">
+                        <option value="">Choisir un équipement</option>
+                        @foreach($this->equipements as $item)
+                            <option value="{{ $item->id }}">{{ $item->nom }} (actuel: {{ $item->quantite }})</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Type d'opération -->
+                <div class="flex p-1 bg-slate-100 rounded-2xl">
+                    <button type="button" wire:click="$set('adjustmentType', 'add')" class="flex-1 py-2 rounded-xl text-xs font-black uppercase transition-all {{ $adjustmentType === 'add' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400' }}">Entrée (+)</button>
+                    <button type="button" wire:click="$set('adjustmentType', 'sub')" class="flex-1 py-2 rounded-xl text-xs font-black uppercase transition-all {{ $adjustmentType === 'sub' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-400' }}">Sortie (-)</button>
+                </div>
+
+                <!-- Quantité -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quantité à ajuster</label>
+                    <input type="number" wire:model="adjustmentAmount" class="w-full text-center text-3xl font-black bg-slate-100 border-none rounded-2xl p-4 focus:bg-white transition-all">
+                </div>
+
+                <button type="submit" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-black shadow-xl shadow-slate-100 transition-all active:scale-95">
+                    Confirmer l'ajustement
+                </button>
+            </form>
         </div>
-
-        <form wire:submit.prevent="adjustStock" class="p-8 pt-4 space-y-6">
-            <!-- Sélection de l'article -->
-            <div class="space-y-2">
-                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Article</label>
-                <select wire:model="selectedItemId" class="w-full bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 font-bold p-4 text-sm">
-                    <option value="">Choisir un équipement</option>
-                    @foreach($this->equipements as $item)
-                        <option value="{{ $item->id }}">{{ $item->nom }} (actuel: {{ $item->quantite }})</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <!-- Type d'opération -->
-            <div class="flex p-1 bg-slate-100 rounded-2xl">
-                <button type="button" wire:click="$set('adjustmentType', 'add')" class="flex-1 py-2 rounded-xl text-xs font-black uppercase transition-all {{ $adjustmentType === 'add' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400' }}">Entrée (+)</button>
-                <button type="button" wire:click="$set('adjustmentType', 'sub')" class="flex-1 py-2 rounded-xl text-xs font-black uppercase transition-all {{ $adjustmentType === 'sub' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-400' }}">Sortie (-)</button>
-            </div>
-
-            <!-- Quantité -->
-            <div class="space-y-2">
-                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quantité à ajuster</label>
-                <input type="number" wire:model="adjustmentAmount" class="w-full text-center text-3xl font-black bg-slate-100 border-none rounded-2xl p-4 focus:bg-white transition-all">
-            </div>
-
-            <button type="submit" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-black shadow-xl shadow-slate-100 transition-all active:scale-95">
-                Confirmer l'ajustement
-            </button>
-        </form>
     </div>
-</div>
-@endif
+    @endif
 
 </div>
 
-<!-- SCRIPTS DE RENDU (Chart.js) -->
-@assets
-<script src="https://cdn.jsdelivr.net"></script>
-@endassets
 
 @script
 <script>

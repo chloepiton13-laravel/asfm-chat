@@ -16,7 +16,7 @@
         <div class="relative">
             <div class="absolute -left-4 top-0 w-1 h-12 bg-blue-600 rounded-full shadow-[0_0_15px_rgba(37,99,235,0.5)]"></div>
             <h1 class="text-4xl font-black text-slate-900 dark:text-white italic uppercase tracking-tighter leading-none">
-                Gestion des <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Équipes</span>
+                Gestion des <span class="text-transparent bg-cyan">Équipes</span>
             </h1>
             <div class="flex items-center gap-3 mt-2">
                 <span class="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
@@ -24,7 +24,9 @@
                     Fédération ASFM
                 </span>
                 <span class="w-1 h-1 rounded-full bg-slate-300"></span>
-                <p class="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em]">{{ $equipes->total() }} Clubs enregistrés</p>
+                <p class="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em]">
+                    {{ $totalClubs }} Clubs enregistrés
+                </p>
             </div>
         </div>
 
@@ -198,118 +200,145 @@
     <div class="mt-6">{{ $equipes->links() }}</div>
 
 
-    <!-- MODALE DE CRÉATION / ÉDITION -->
-    <div x-data="{ showModal: @entangle('showModal') }"
-         @close-modal-delayed.window="setTimeout(() => showModal = false, 800)"
-         x-cloak
-         class="relative z-50">
+    <div x-data="{
+        showModal: @entangle('showModal'),
+        isCropping: false,
+        cropper: null,
 
-        <!-- Background overlay -->
-        <div x-show="showModal"
-             x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-             class="fixed inset-0 bg-black/30 backdrop-blur-sm"></div>
+        // Initialisation du fichier (Comme Filament)
+        handleFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-        <!-- Modal content -->
-        <div x-show="showModal"
-             x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-             x-transition:leave="ease-in duration-200"
-             class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.isCropping = true;
+                this.$nextTick(() => {
+                    const image = document.getElementById('cropper-canvas');
+                    image.src = e.target.result;
+                    if (this.cropper) this.cropper.destroy();
 
-            <div class="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-[1rem] shadow-lg overflow-hidden border border-slate-200">
+                    this.cropper = new Cropper(image, {
+                        aspectRatio: 1,
+                        viewMode: 1,
+                        dragMode: 'move',
+                        background: false,
+                        autoCropArea: 1,
+                    });
+                });
+            };
+            reader.readAsDataURL(file);
+        },
 
-                <!-- Modal header (Simplifié) -->
-                <div class="flex items-center justify-between p-4 bg-transparent text-slate-900 dark:text-white">
-                    <div>
-                        <h3 class="text-lg font-semibold uppercase tracking-tighter" id="modal-title">
-                            {{ $editingEquipeId ? 'Modifier l\'équipe' : 'Ajouter une équipe' }}
-                        </h3>
-                    </div>
-                    <button @click="showModal = false" class="text-slate-500 hover:text-slate-700 transition-colors">
-                        <span class="material-symbols-outlined">close</span>
-                    </button>
-                </div>
+        // Redimensionnement et validation Alpine
+        saveCrop() {
+            const canvas = this.cropper.getCroppedCanvas({ width: 500, height: 500 });
+            // Envoi du résultat redimensionné à Livewire
+            @this.set('logo', canvas.toDataURL('image/jpeg', 0.9));
+            this.isCropping = false;
+            this.cropper.destroy();
+        }
+    }"
+    x-show="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" x-cloak>
 
-                <!-- Message d'erreur global -->
-                @if ($errors->any())
-                    <div class="mx-6 mt-4 p-3 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-3">
-                        <span class="material-symbols-outlined text-rose-500">error</span>
-                        <p class="text-xs font-bold text-rose-600">Veuillez corriger les erreurs dans le formulaire.</p>
-                    </div>
-                @endif
+        <div x-show="showModal" x-transition:enter="ease-out duration-300 scale-95 opacity-0" x-transition:enter-end="scale-100 opacity-100"
+             class="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
 
-                <!-- Modal body -->
-                <div class="p-6 space-y-4">
-                    <!-- Nom & Sigle -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Nom de l'équipe</label>
-                            <input type="text" wire:model="nom"
-                                   class="w-full px-5 py-3 bg-slate-50 dark:bg-slate-800 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 transition-all @error('nom') ring-2 ring-rose-500 @enderror"
-                                   placeholder="Ex: AS Vétérans">
-                            @error('nom') <p class="text-xs text-rose-500 font-semibold mt-1">{{ $message }}</p> @enderror
-                        </div>
+            <!-- Header -->
+            <div class="flex items-center justify-between p-6 border-b dark:border-slate-800">
+                <h3 class="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-tight">
+                    {{ $editingEquipeId ? 'Modifier l\'équipe' : 'Ajouter une équipe' }}
+                </h3>
+                <button @click="showModal = false" class="text-slate-400 hover:text-rose-500 transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
 
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Sigle (ex: FCB)</label>
-                            <input type="text" wire:model="sigle"
-                                   class="w-full px-5 py-3 bg-slate-50 dark:bg-slate-800 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 transition-all">
-                        </div>
-                    </div>
+            <!-- Body Formulaire -->
+            <div class="p-8 space-y-6">
 
-                    <!-- Logo & Statut -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Logo du club</label>
-                            <div class="flex items-center gap-4">
-                                <div class="h-16 w-16 rounded-2xl bg-slate-100 dark:bg-slate-800 border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden relative">
-                                    @if($logo)
-                                        <img src="{{ $logo->temporaryUrl() }}" class="h-full w-full object-cover">
-                                    @elseif($editingEquipeId && $existingLogo)
-                                        <img src="{{ Storage::url($existingLogo) }}" class="h-full w-full object-contain p-2">
-                                    @else
-                                        <span class="material-symbols-outlined text-slate-300">image</span>
-                                    @endif
-                                    <input type="file" wire:model="logo" class="absolute inset-0 opacity-0 cursor-pointer">
-                                </div>
-                                <p class="text-xs text-slate-400 font-semibold italic leading-tight">Cliquer pour charger<br>(JPG, PNG max 1Mo)</p>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                            <label class="relative inline-flex items-center cursor-pointer group">
-                                <input type="checkbox" wire:model="est_actif" class="sr-only peer">
-                                <div class="w-11 h-6 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-indigo-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                                <span class="ml-3 text-xs font-semibold text-slate-600 dark:text-slate-400 group-hover:text-indigo-600 transition-colors">Équipe active</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Modal footer (Simplifié) -->
-                <div class="flex items-center justify-end gap-4 p-6 border-t border-slate-200 dark:border-slate-700">
-                    <button @click="showModal = false"
-                            class="px-6 py-3 text-xs font-semibold text-slate-500 hover:text-slate-700 transition-all">
-                        Annuler
-                    </button>
-
-                    <button wire:click="saveEquipe"
-                            wire:loading.attr="disabled"
-                            class="px-8 py-3 rounded-xl font-semibold text-xs uppercase tracking-widest shadow-xl transition-all duration-300 active:scale-95 flex items-center gap-2
-                            {{ session()->has('success') ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-indigo-600 shadow-indigo-600/30 hover:bg-indigo-700' }} text-white">
-
-                        <span wire:loading.remove wire:target="saveEquipe">
-                            @if(session()->has('success'))
-                                <span class="material-symbols-outlined text-sm">check_circle</span> ENREGISTRÉ !
+                <!-- Zone Upload "Filament Style" -->
+                <div class="flex flex-col items-center justify-center">
+                    <div class="relative group">
+                        <div class="h-32 w-32 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden transition-all group-hover:border-indigo-500 shadow-inner">
+                            @if($logo && is_string($logo) && str_starts_with($logo, 'data:image'))
+                                <img src="{{ $logo }}" class="h-full w-full object-cover">
+                            @elseif($editingEquipeId && $existingLogo && !$logo)
+                                <img src="{{ Storage::url($existingLogo) }}" class="h-full w-full object-contain p-4">
                             @else
-                                {{ $editingEquipeId ? 'Mettre à jour' : 'Créer l\'équipe' }}
+                                <div class="text-center">
+                                    <span class="material-symbols-outlined text-4xl text-slate-300">cloud_upload</span>
+                                    <p class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Logo</p>
+                                </div>
                             @endif
-                        </span>
+                            <input type="file" @change="handleFile" class="absolute inset-0 opacity-0 cursor-pointer" accept="image/*">
+                        </div>
+                        <!-- Petit badge d'édition si image présente -->
+                        @if($logo || $existingLogo)
+                        <div class="absolute -bottom-2 -right-2 h-8 w-8 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg pointer-events-none">
+                            <span class="material-symbols-outlined text-sm">edit</span>
+                        </div>
+                        @endif
+                    </div>
+                </div>
 
-                        <span wire:loading wire:target="saveEquipe" class="flex items-center gap-2 italic animate-pulse">
-                            Traitement...
-                        </span>
-                    </button>
+                <!-- Champs Saisie -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div class="md:col-span-2">
+                        <label class="block text-[11px] font-bold text-slate-400 uppercase mb-2 ml-1">Nom de l'équipe</label>
+                        <input type="text" wire:model="nom" class="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-400 uppercase mb-2 ml-1">Sigle</label>
+                        <input type="text" wire:model="sigle" class="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 text-center font-black uppercase">
+                    </div>
+                </div>
+
+                <!-- Toggle Actif -->
+                <div class="flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <span class="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase">Équipe active</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" wire:model="est_actif" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:bg-indigo-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5 shadow-inner"></div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-8 border-t dark:border-slate-800 flex justify-between items-center bg-slate-50/30">
+                <button @click="showModal = false" class="text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600">Annuler</button>
+                <button wire:click="saveEquipe" wire:loading.attr="disabled" class="px-10 py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl hover:shadow-indigo-500/20 active:scale-95 transition-all">
+                    <span wire:loading.remove wire:target="saveEquipe">Enregistrer</span>
+                    <span wire:loading wire:target="saveEquipe" class="flex items-center gap-2 italic animate-pulse">Envoi...</span>
+                </button>
+            </div>
+
+            <!-- OVERLAY D'ÉDITION IMAGE (STYLE FILAMENT) -->
+            <div x-show="isCropping" x-transition.opacity class="absolute inset-0 z-50 bg-slate-950 flex flex-col">
+                <div class="p-6 flex items-center justify-between bg-slate-900 border-b border-slate-800">
+                    <div class="flex gap-2">
+                        <button @click="cropper.rotate(-90)" class="h-10 w-10 flex items-center justify-center bg-slate-800 text-white rounded-xl hover:bg-indigo-600 transition-colors">
+                            <span class="material-symbols-outlined text-sm">rotate_left</span>
+                        </button>
+                        <button @click="cropper.rotate(90)" class="h-10 w-10 flex items-center justify-center bg-slate-800 text-white rounded-xl hover:bg-indigo-600 transition-colors">
+                            <span class="material-symbols-outlined text-sm">rotate_right</span>
+                        </button>
+                        <div class="w-px h-6 bg-slate-700 mx-2 self-center"></div>
+                        <button @click="cropper.zoom(0.1)" class="h-10 w-10 flex items-center justify-center bg-slate-800 text-white rounded-xl hover:bg-indigo-600 transition-colors">
+                            <span class="material-symbols-outlined text-sm">zoom_in</span>
+                        </button>
+                        <button @click="cropper.zoom(-0.1)" class="h-10 w-10 flex items-center justify-center bg-slate-800 text-white rounded-xl hover:bg-indigo-600 transition-colors">
+                            <span class="material-symbols-outlined text-sm">zoom_out</span>
+                        </button>
+                    </div>
+                    <div class="flex gap-4">
+                        <button @click="isCropping = false; cropper.destroy()" class="text-xs font-bold text-slate-400 uppercase tracking-widest px-4">Annuler</button>
+                        <button @click="saveCrop" class="px-6 py-3 bg-white text-slate-900 rounded-xl font-black text-[11px] uppercase tracking-widest shadow-lg">Appliquer</button>
+                    </div>
+                </div>
+                <!-- Zone de travail -->
+                <div class="flex-1 relative flex items-center justify-center overflow-hidden p-8">
+                    <img id="cropper-canvas" class="max-w-full block shadow-2xl">
                 </div>
             </div>
         </div>

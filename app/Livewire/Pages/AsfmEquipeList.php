@@ -6,10 +6,11 @@ use App\Models\Equipe;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\WithFileUploads;
-use Livewire\Attributes\{Layout, Url};
+use Livewire\Attributes\{Layout, Title, Url};
 use Illuminate\Support\Facades\Storage;
 
 #[Layout('layouts.dashboard')]
+#[Title('Liste des Equipes')]
 class AsfmEquipeList extends Component
 {
     use WithPagination, WithFileUploads;
@@ -61,39 +62,53 @@ class AsfmEquipeList extends Component
         $this->validate([
             'nom' => 'required|min:3|unique:equipes,nom,' . $this->editingEquipeId,
             'sigle' => 'nullable|max:10',
-            'logo' => 'nullable|image|max:1024',
+            'logo' => 'nullable',
         ]);
 
         $data = [
             'nom' => $this->nom,
-            'sigle' => $this->sigle,
+            'sigle' => $this->sigle ? strtoupper(trim($this->sigle)) : null,
             'est_actif' => $this->est_actif,
         ];
 
         if ($this->logo) {
+            // Suppression de l'ancien logo si modification
             if ($this->editingEquipeId && $this->existingLogo) {
                 Storage::disk('public')->delete($this->existingLogo);
             }
-            $data['logo'] = $this->logo->store('logos', 'public');
+
+            if (is_string($this->logo) && str_starts_with($this->logo, 'data:image')) {
+                // Logique de décodage du Crop (Base64)
+                $imgData = substr($this->logo, strpos($this->logo, ',') + 1);
+                $filename = 'logos/' . uniqid() . '.png';
+                Storage::disk('public')->put($filename, base64_decode($imgData));
+                $data['logo'] = $filename;
+            } elseif (!is_string($this->logo)) {
+                // Logique Upload classique (si le fichier n'est pas une string base64)
+                $data['logo'] = $this->logo->store('logos', 'public');
+            }
         }
 
-        if ($this->editingEquipeId) {
-            Equipe::find($this->editingEquipeId)->update($data);
-            $message = "Équipe mise à jour !";
-        } else {
-            Equipe::create($data);
-            $message = "Équipe créée avec succès !";
-        }
+        // Utilisation de updateOrCreate pour plus de concision
+        $equipe = Equipe::updateOrCreate(
+            ['id' => $this->editingEquipeId],
+            $data
+        );
 
-        // Flash session pour l'icône de succès sur le bouton
+        $message = $this->editingEquipeId ? "Équipe mise à jour !" : "Équipe créée avec succès !";
+
+        // Feedback et fermeture
         session()->flash('success', true);
-
-        // Délai de 800ms pour laisser l'utilisateur voir le bouton vert/succès
         $this->dispatch('close-modal-delayed');
 
-        // Reset et notification finale
-        $this->reset(['editingEquipeId', 'logo']);
-        $this->dispatch('notify', type: 'success', message: $message);
+        // Reset des propriétés après succès
+        $this->reset(['editingEquipeId', 'logo', 'nom', 'sigle', 'est_actif', 'existingLogo']);
+
+        // Notification Toast
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => $message
+        ]);
     }
 
     public function deleteEquipe($id)
@@ -124,11 +139,16 @@ class AsfmEquipeList extends Component
                 'players as veterans_count' => fn($q) => $q->where('level', 'A'),
                 'players as seniors_count' => fn($q) => $q->where('level', 'B')
             ])
+            ->where('is_guest', false) // <-- seulement les équipes non invités
             ->orderBy('nom')
             ->paginate(12);
 
+        // Compter toutes les équipes non invitées, pas seulement la page actuelle
+        $totalClubs = Equipe::where('is_guest', false)->count();
+
         return view('livewire.pages.asfm-equipe-list', [
-            'equipes' => $equipes
+            'equipes' => $equipes,
+            'totalClubs' => $totalClubs, // <-- passe au Blade
         ]);
     }
 }

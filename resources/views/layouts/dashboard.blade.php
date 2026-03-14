@@ -11,6 +11,8 @@
 <!-- Script de capture -->
 <script src="https://cdnjs.cloudflare.com"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com">
+<script src="https://cdnjs.cloudflare.com"></script>
 
 
 <script id="tailwind-config">
@@ -36,6 +38,12 @@
             },
         }
     </script>
+    <style>
+    @keyframes shimmer {
+        0% { transform: translateX(-200%) skewX(-12deg); }
+        100% { transform: translateX(400%) skewX(-12deg); }
+    }
+    </style>
 <style type="text/tailwindcss">
         @layer base {
             body {
@@ -190,6 +198,7 @@
   }
   </script>
   <script src="https://cdn.jsdelivr.net"></script>
+  
 
   <script>
       document.addEventListener('livewire:navigated', () => {
@@ -272,6 +281,98 @@
           });
       });
   </script>
+
+<script>
+/*
+   FICHIER : resources/js/dashboard-charts.js
+   Liaison : <canvas id="comparisonChart"></canvas>
+*/
+
+document.addEventListener('livewire:navigated', () => {
+    const el = document.getElementById('comparisonChart');
+    if (!el) return;
+
+    const ctx = el.getContext('2d');
+    const container = el.closest('.group'); // Cible le conteneur parent Ace Berg
+
+    // Couleurs Ace Berg (Mode Sombre par défaut)
+    const colors = {
+        current: '#6366f1',      // Indigo Vibrant
+        prior: 'rgba(255, 255, 255, 0.08)', // Blanc très discret
+        text: 'rgba(255, 255, 255, 0.2)',
+        // Mode Inverse (Hover)
+        currentHover: '#4f46e5', // Indigo profond
+        priorHover: '#e2e8f0',   // Gris clair (Ardoise)
+        textHover: '#94a3b8'     // Gris texte
+    };
+
+    const config = {
+        type: 'line',
+        data: {
+            labels: ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN'],
+            datasets: [
+                {
+                    label: 'Current',
+                    data: [30, 45, 35, 60, 50, 70], // Vos données dynamiques ici
+                    borderColor: colors.current,
+                    borderWidth: 4,
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: colors.current,
+                    tension: 0.4,
+                },
+                {
+                    label: 'Prior',
+                    data: [20, 35, 40, 45, 30, 55],
+                    borderColor: colors.prior,
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    tension: 0.4,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        color: colors.text,
+                        font: { size: 9, weight: '900', family: 'Inter' }
+                    }
+                },
+                y: { display: false } // Look Ace Berg : pas d'axe Y
+            },
+            interaction: { intersect: false, mode: 'index' }
+        }
+    };
+
+    const chart = new Chart(ctx, config);
+
+    // LOGIQUE D'INVERSION ACE BERG
+    if (container) {
+        container.addEventListener('mouseenter', () => {
+            // Bascule vers le look "Papier"
+            chart.data.datasets[1].borderColor = colors.priorHover;
+            chart.data.datasets[0].borderColor = colors.currentHover;
+            chart.options.scales.x.ticks.color = colors.textHover;
+            chart.update('active'); // Update fluide
+        });
+
+        container.addEventListener('mouseleave', () => {
+            // Retour au look "Abyssal"
+            chart.data.datasets[1].borderColor = colors.prior;
+            chart.data.datasets[0].borderColor = colors.current;
+            chart.options.scales.x.ticks.color = colors.text;
+            chart.update('active');
+        });
+    }
+});
+
+</script>
 
   @livewireScripts
   </body>

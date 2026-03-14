@@ -13,86 +13,75 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
+/**
+ * ACE BERG ONYX - SYSTÈME CORE
+ */
 class User extends Authenticatable implements HasMedia
 {
     use HasFactory, Notifiable, SoftDeletes, InteractsWithMedia, TwoFactorAuthenticatable;
 
-    // Attributs assignables en masse
+    /**
+     * Attributs assignables en masse (Whitelist)
+     */
     protected $fillable = [
         'name',
         'username',
         'email',
         'password',
         'about',
-        'is_online',
-        'last_seen_at',
+        'role',          // ACE BERG : admin, manager, staff
+        'is_online',     // Status Monitor
+        'last_seen_at',  // Terminal Sync
     ];
 
     /**
-     * Compte les messages non lus pour l'utilisateur connecté.
-     * On exclut les messages dont il est lui-même l'auteur (user_id != id).
+     * Attributs à masquer pour la sécurité (Fortify & API)
      */
-    public function unreadMessagesCount(): int
-    {
-        return \App\Models\Message::whereHas('conversation', function ($query) {
-            $query->whereHas('users', function ($q) {
-                $q->where('users.id', $this->id);
-            });
-        })
-        ->where('user_id', '!=', $this->id) // On ne compte pas nos propres messages
-        ->whereNull('read_at')              // Uniquement ceux qui n'ont pas de date de lecture
-        ->count();
-    }
-
-    // Attributs à masquer
     protected $hidden = [
         'password',
         'remember_token',
-        'two_factor_recovery_codes',
-        'two_factor_secret',
+        'two_factor_recovery_codes', // Sécurité Onyx
+        'two_factor_secret',         // Sécurité Onyx
     ];
 
-    // Conversion automatique des types
+    /**
+     * Conversion automatique des types (Casts)
+     */
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'is_online' => 'boolean',
         'last_seen_at' => 'datetime',
-        'two_factor_confirmed_at' => 'datetime',
+        'two_factor_confirmed_at' => 'datetime', // Fortify Confirm
     ];
 
     /*
+
     |----------------------------------------------------------------------
-    | Spatie Media Library (Gestion des avatars)
+    | ACE BERG - LOGIQUE DE RÔLES & ACCÈS
     |----------------------------------------------------------------------
     */
 
-    public function registerMediaCollections(): void
-    {
-        $this->addMediaCollection('avatars')
-             ->singleFile();
-    }
-
-    public function registerMediaConversions(?Media $media = null): void
-    {
-        $this->addMediaConversion('thumb')
-             ->width(150)
-             ->height(150)
-             ->sharpen(10);
-    }
-
-    // Getter pour l'avatar
-    public function getAvatarUrlAttribute(): string
-    {
-        return $this->getFirstMediaUrl('avatars', 'thumb')
-             ?: 'https://ui-avatars.com' . urlencode($this->name) . '&background=random&color=fff';
-    }
+    public function isAdmin(): bool { return $this->role === 'admin'; }
+    public function isManager(): bool { return $this->role === 'manager'; }
+    public function isStaff(): bool { return $this->role === 'staff' || empty($this->role); }
 
     /*
+
     |----------------------------------------------------------------------
-    | Relations de conversations (avec les utilisateurs)
+    | MESSAGERIE & CONVERSATIONS
     |----------------------------------------------------------------------
     */
+
+    public function unreadMessagesCount(): int
+    {
+        return \App\Models\Message::whereHas('conversation', function ($query) {
+            $query->whereHas('users', fn($q) => $q->where('users.id', $this->id));
+        })
+        ->where('user_id', '!=', $this->id)
+        ->whereNull('read_at')
+        ->count();
+    }
 
     public function conversations(): BelongsToMany
     {
@@ -101,92 +90,75 @@ class User extends Authenticatable implements HasMedia
                     ->withTimestamps();
     }
 
-    public function messages(): HasMany
-    {
-        return $this->hasMany(Message::class);
-    }
+    public function messages(): HasMany { return $this->hasMany(Message::class); }
 
     /*
+
     |----------------------------------------------------------------------
-    | Gestion des relations d'amitié (Demande, Blocage, etc.)
+    | SPATIE MEDIA LIBRARY (AVATARS SYSTÈME)
     |----------------------------------------------------------------------
     */
 
-    /**
-     * Les amis acceptés de l'utilisateur.
-     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('avatars')->singleFile();
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('thumb')->width(150)->height(150)->sharpen(10);
+    }
+
+    public function getAvatarUrlAttribute(): string
+    {
+        return $this->getFirstMediaUrl('avatars', 'thumb')
+             ?: 'https://ui-avatars.com' . urlencode($this->name) . '&background=050505&color=f59e0b&bold=true';
+    }
+
+    /*
+
+    |----------------------------------------------------------------------
+    | RELATIONS D'AMITIÉ (ONYX NETWORK)
+    |----------------------------------------------------------------------
+    */
+
     public function friends(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'friends', 'user_id', 'friend_id')
-                    ->wherePivot('status', 'accepted')
-                    ->withTimestamps();
+                    ->wherePivot('status', 'accepted')->withTimestamps();
     }
 
-    /**
-     * Demandes d'amis envoyées (en attente).
-     */
     public function friendRequestsSent(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'friends', 'user_id', 'friend_id')
-                    ->wherePivot('status', 'pending')
-                    ->withTimestamps();
+                    ->wherePivot('status', 'pending')->withTimestamps();
     }
 
-    /**
-     * Demandes d'amis reçues (en attente).
-     */
     public function friendRequestsReceived(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'friends', 'friend_id', 'user_id')
-                    ->wherePivot('status', 'pending')
-                    ->withTimestamps();
+                    ->wherePivot('status', 'pending')->withTimestamps();
     }
 
-    /**
-     * Utilisateurs bloqués.
-     */
     public function blockedUsers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'friends', 'user_id', 'friend_id')
-                    ->wherePivot('status', 'blocked')
-                    ->withTimestamps();
+                    ->wherePivot('status', 'blocked')->withTimestamps();
     }
 
     /*
+
     |----------------------------------------------------------------------
-    | Helpers (Méthodes utilitaires pour simplifier le code)
+    | HELPERS SYSTÈME
     |----------------------------------------------------------------------
     */
 
-    /**
-     * Vérifie si l'utilisateur est en ligne (dans les 5 dernières minutes).
-     */
     public function isOnline(): bool
     {
         return $this->is_online && $this->last_seen_at && $this->last_seen_at->gt(now()->subMinutes(5));
     }
 
-    /**
-     * Vérifie si une demande d'ami est en attente.
-     */
-    public function hasPendingRequestTo($userId): bool
-    {
-        return $this->friendRequestsSent()->where('friend_id', $userId)->exists();
-    }
-
-    /**
-     * Vérifie si l'utilisateur est ami avec un autre.
-     */
-    public function isFriendsWith($userId): bool
-    {
-        return $this->friends()->where('friend_id', $userId)->exists();
-    }
-
-    /**
-     * Vérifie si l'utilisateur a une demande d'ami en attente.
-     */
-    public function hasPendingRequestFrom($userId): bool
-    {
-        return $this->friendRequestsReceived()->where('user_id', $userId)->exists();
-    }
+    public function isFriendsWith($userId): bool { return $this->friends()->where('friend_id', $userId)->exists(); }
+    public function hasPendingRequestTo($userId): bool { return $this->friendRequestsSent()->where('friend_id', $userId)->exists(); }
+    public function hasPendingRequestFrom($userId): bool { return $this->friendRequestsReceived()->where('user_id', $userId)->exists(); }
 }

@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\{Layout, Title};
 
 #[Title('User profile')]
-#[Layout('layouts::dashboard')]
+#[Layout('layouts::home-app')]
 class UserProfile extends Component
 {
     public $user;

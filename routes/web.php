@@ -44,18 +44,32 @@ use App\Livewire\Contribution\{
   EquipesContributionsCreate,
   EquipesContributionsEdit
 };
+use App\Livewire\Users\UsersList;
 
 
 Route::get('/', function () {
     return view('welcome');
 });
 
+
+Route::middleware(['auth', '2fa.enforce'])->group(function () {
+    // Accessible uniquement si 2FA est validé
+    Route::get('/dashboard', Dashboard::class)->name('dashboard');
+    Route::get('/utilisateurs', UsersList::class)->name('users.index');
+});
+
+// Route hors du middleware pour permettre l'activation
+Route::middleware(['auth'])->group(function () {
+    Route::get('/profile/security', function () {
+        return view('profile.two-factor-authentication');
+    })->name('profile.security');
+});
+
+
 Route::middleware(['auth', 'verified'])->group(function () {
     // Core App
     Route::get('/home', Home::class)->name('home.index');
     Route::get('/chat', ChatApp::class)->name('chat');
-    Route::get('/dashboard', Dashboard::class)->name('dashboard');
-
     Route::get('/contributions/equipes', EquipesContributionsList::class)
     ->name('contributions.equipes'); // Optionnel, selon votre sécurité
     Route::get('/create', EquipesContributionsCreate::class)->name('contributions.create');
@@ -104,7 +118,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/finances/reçus', OfficialAsfmPaymentReceiptPdf::class)->name('finance.receipts');
 
         // Système & Sécurité
-        Route::get('/utilisateurs', AdminUserManagementList::class)->name('users.index');
         Route::get('/permissions', RolesPermissionsInterface::class)->name('system.permissions');
         Route::get('/logs', AsfmSystemAuditLogsOverview::class)->name('system.logs');
     });

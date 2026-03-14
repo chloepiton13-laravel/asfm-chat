@@ -83,27 +83,86 @@
                 </div>
                 @endif
 
+                {{-- resources/views/profile/tabs/security.blade.php --}}
+
                 @if($tab === 'security')
                 <div class="glass p-8 rounded-lg border-white/5 animate-fade-in">
                     <h3 class="text-xs font-black uppercase tracking-[0.2em] text-amber-500 mb-8 border-b border-white/5 pb-4">Sécurité & Accès</h3>
+
                     <div class="space-y-4">
+                        {{-- BLOC MOT DE PASSE (STATIQUE POUR L'INSTANT) --}}
                         <div class="p-6 rounded-lg bg-white/5 border border-white/10 flex justify-between items-center">
                             <div>
                                 <p class="text-white font-bold text-sm uppercase italic">Mot de passe</p>
-                                <p class="text-slate-500 text-[10px] uppercase mt-1">Dernière modification il y a 3 mois</p>
+                                <p class="text-slate-500 text-[10px] uppercase mt-1">Protégé par cryptage AES-256</p>
                             </div>
                             <button class="px-4 py-2 border border-white/20 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-slate-950 transition">Modifier</button>
                         </div>
-                        <div class="p-6 rounded-lg bg-white/5 border border-white/10 flex justify-between items-center">
-                            <div>
-                                <p class="text-white font-bold text-sm uppercase italic">Double Authentification (2FA)</p>
-                                <p class="text-red-500 text-[10px] font-bold uppercase mt-1">Désactivé</p>
+
+                        {{-- BLOC DOUBLE AUTHENTIFICATION (DYNAMIQUE) --}}
+                        <div class="p-6 rounded-lg bg-white/5 border border-white/10">
+                            <div class="flex justify-between items-center mb-6">
+                                <div>
+                                    <p class="text-white font-bold text-sm uppercase italic">Double Authentification (2FA)</p>
+                                    @if(auth()->user()->two_factor_confirmed_at)
+                                        <p class="text-emerald-500 text-[10px] font-bold uppercase mt-1 animate-pulse">● Protocole Actif</p>
+                                    @else
+                                        <p class="text-red-500 text-[10px] font-bold uppercase mt-1 uppercase">Désactivé / Non configuré</p>
+                                    @endif
+                                </div>
+
+                                @if(! auth()->user()->two_factor_secret)
+                                    {{-- BOUTON ACTIVER --}}
+                                    <form method="POST" action="{{ url('/user/two-factor-authentication') }}">
+                                        @csrf
+                                        <button type="submit" class="px-4 py-2 bg-amber-500 text-slate-950 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-amber-400 transition">Activer</button>
+                                    </form>
+                                @else
+                                    {{-- BOUTON DÉSACTIVER --}}
+                                    <form method="POST" action="{{ url('/user/two-factor-authentication') }}">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="px-4 py-2 bg-red-500/20 text-red-500 border border-red-500/50 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition">Révoquer</button>
+                                    </form>
+                                @endif
                             </div>
-                            <button class="px-4 py-2 bg-amber-500 text-slate-950 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-amber-400 transition">Activer</button>
+
+                            {{-- INTERFACE DE SYNC (QR CODE) --}}
+                            @if(auth()->user()->two_factor_secret && ! auth()->user()->two_factor_confirmed_at)
+                                <div class="mt-8 pt-8 border-t border-white/5 flex flex-col items-center">
+                                    <div class="p-4 bg-white rounded-xl mb-6 shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+                                        {!! auth()->user()->twoFactorQrCodeSvg() !!}
+                                    </div>
+
+                                    <p class="text-slate-400 text-[9px] font-bold uppercase tracking-[0.2em] mb-4 text-center">Scannez ce code avec votre application de sécurité</p>
+
+                                    <form method="POST" action="{{ url('/user/confirmed-two-factor-authentication') }}" class="w-full max-w-[200px]">
+                                        @csrf
+                                        <input type="text" name="code" placeholder="000 000" required autofocus
+                                            class="w-full bg-black/40 border border-white/10 rounded-lg py-3 text-center text-white font-black tracking-[0.5em] focus:border-amber-500 outline-none mb-3">
+                                        <button type="submit" class="w-full py-2 bg-white text-black text-[9px] font-black uppercase tracking-widest rounded-lg">Confirmer le lien</button>
+                                    </form>
+                                </div>
+                            @endif
+
+                            {{-- AFFICHAGE DES CODES DE SECOURS SI CONFIRMÉ --}}
+                            @if(auth()->user()->two_factor_confirmed_at)
+                                <div x-data="{ open: false }" class="mt-4">
+                                    <button @click="open = !open" class="text-[9px] text-slate-500 font-bold uppercase tracking-widest hover:text-white transition italic underline">
+                                        Afficher les codes de secours
+                                    </button>
+                                    <div x-show="open" class="grid grid-cols-2 gap-2 mt-4 bg-black/20 p-4 rounded-xl border border-white/5">
+                                        @foreach (json_decode(decrypt(auth()->user()->two_factor_recovery_codes), true) as $code)
+                                            <code class="text-[10px] text-amber-500/70 font-mono text-center">{{ $code }}</code>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>
                 @endif
+
             </div>
         </div>
     </div>
