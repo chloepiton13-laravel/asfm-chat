@@ -45,6 +45,7 @@ use App\Livewire\Contribution\{
   EquipesContributionsEdit
 };
 use App\Livewire\Users\UsersList;
+use App\Livewire\{DocList, CreateDoc, EditDoc};
 
 
 Route::get('/', function () {
@@ -75,6 +76,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/create', EquipesContributionsCreate::class)->name('contributions.create');
     Route::get('/contributions/{contribution}/edit', EquipesContributionsEdit::class)
         ->name('contributions.edit');
+
+        // Ton préfixe définit déjà le début de l'URL
+        Route::prefix('admin/documents-militaires')->group(function () {
+
+            // ICI : Mets juste '/' pour que l'URL soit : admin/documents-militaires
+            Route::livewire('/', 'pages::document-militaires.doc-list')
+                ->name('documents.military.index');
+
+            Route::livewire('/nouveau', 'pages::document-militaires.create-doc')
+                ->name('documents.military.create');
+
+            Route::livewire('/{document}/modifier', 'pages::document-militaires.edit-doc')
+                ->name('documents.military.edit');
+        });
 
     // --- ASFM ADMIN PANEL ---
     Route::prefix('admin')->group(function () {
